@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Data Detectives — Pioche</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,Arial; margin:20px; max-width:1000px}
+    h1{margin:0 0 10px}
+    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+    button{padding:10px 14px; border:1px solid #ccc; border-radius:10px; background:#fff; cursor:pointer}
+    button:hover{background:#f5f5f5}
+    input{padding:10px; width:80px; border-radius:10px; border:1px solid #ccc}
+    .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:14px}
+    .card{border:1px solid #ddd; border-radius:14px; padding:12px; background:#fafafa}
+    .meta{font-size:14px; color:#333}
+    .hint{padding:12px; border:1px dashed #aaa; border-radius:12px; margin-top:14px}
+    code{background:#eee; padding:2px 6px; border-radius:6px}
+  </style>
+</head>
+<body>
+  <h1>Data Detectives — Pioche d'employés</h1>
+  <p>Cliquer sur <b>Nouvelle pioche</b> pour obtenir un échantillon. Les calculs se font <b>à la main</b> en groupe.</p>
+
+  <div class="row">
+    <label>Nb cartes :
+      <input id="nb" type="number" value="12" min="6" max="30"/>
+    </label>
+    <button id="btn">Nouvelle pioche</button>
+    <button id="btnCopy">Copier en texte</button>
+  </div>
+
+  <div class="hint">
+    <b>Mission (à la main)</b><br/>
+    1) Effectifs F/M<br/>
+    2) Moyenne salaire F et M<br/>
+    3) Écart % : <code>((moy_H - moy_F)/moy_H)*100</code><br/>
+    4) Chercher des binômes même <code>experience</code> + mêmes <code>etudes</code> (poste équivalent)
+  </div>
+
+  <div id="cards" class="cards"></div>
+
+  <script>
+    let data = [];
+    let lastPick = [];
+
+    function shuffle(arr){
+      const a = arr.slice();
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i],a[j]] = [a[j],a[i]];
+      }
+      return a;
+    }
+
+    function render(cards){
+      const root = document.getElementById("cards");
+      root.innerHTML = "";
+      cards.forEach((e, idx) => {
+        const d = document.createElement("div");
+        d.className = "card";
+        d.innerHTML = `
+          <div><b>Carte #${idx+1}</b></div>
+          <div class="meta">Expérience : <b>${e.experience}</b> ans</div>
+          <div class="meta">Études : <b>${e.etudes}</b> ans</div>
+          <div class="meta">Sexe : <b>${e.sexe}</b></div>
+          <div class="meta">Salaire : <b>${e.salaire}</b> €</div>
+        `;
+        root.appendChild(d);
+      });
+    }
+
+    function pick(){
+      const n = Math.max(6, Math.min(30, parseInt(document.getElementById("nb").value || "12")));
+      const s = shuffle(data);
+      lastPick = s.slice(0, Math.min(n, s.length));
+      render(lastPick);
+    }
+
+    function copyText(){
+      if(!lastPick.length){ return; }
+      const txt = lastPick.map((e,i)=>
+        `${i+1}) exp:${e.experience} etu:${e.etudes} sexe:${e.sexe} sal:${e.salaire}`
+      ).join("\n");
+      navigator.clipboard.writeText(txt);
+      alert("Copié !");
+    }
+
+    async function init(){
+      const res = await fetch("cartes.json");
+      data = await res.json();
+      pick();
+    }
+
+    document.getElementById("btn").addEventListener("click", pick);
+    document.getElementById("btnCopy").addEventListener("click", copyText);
+    init();
+  </script>
+</body>
+</html>
